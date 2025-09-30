@@ -22,8 +22,8 @@ centri_di_massa = [
     np.average(pos, axis=0, weights=mass) for pos, mass in zip(positions, masses)
 ]
 
-I = np.zeros((n, 3, 3))
-for pos, mass, i in zip(positions, masses, I):
+I = []
+for pos, mass in zip(positions, masses):
     xx = calcDiagVal(pos[:, 1], pos[:, 2], mass)
     yy = calcDiagVal(pos[:, 0], pos[:, 2], mass)
     zz = calcDiagVal(pos[:, 0], pos[:, 1], mass)
@@ -31,8 +31,24 @@ for pos, mass, i in zip(positions, masses, I):
     yz = calcIlResto(pos[:, 1], pos[:, 2], mass)
     xz = calcIlResto(pos[:, 0], pos[:, 2], mass)
     i = [[xx, xy, xz], [xy, yy, yz], [xz, yz, zz]]
+    I.append(i)
 
 
+eigvals = [np.sort(np.linalg.eigvals(j)) for j in I]
+
+i = 0
+topolino = {"Sferica": 0, "Oblata": 0, "Prolata": 0, "Asimmetrica": 0}
+for element in eigvals:
+    if np.isclose(element[0], element[1], atol=1e-3) and np.isclose(
+        element[1], element[2], atol=1e-3
+    ):
+        topolino["Sferica"] += 1
+    elif np.isclose(element[0], element[1], atol=1e-3) and element[1] < element[2]:
+        topolino["Oblata"] += 1
+    elif element[0] < element[1] and np.isclose(element[1], element[2], atol=1e-3):
+        topolino["Prolata"] += 1
+    elif element[0] < element[1] and element[1] < element[2]:
+        topolino["Asimmetrica"] += 1
 pluto = 0
 
 
