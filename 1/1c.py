@@ -21,7 +21,6 @@ def classify_eigs(vals: np.ndarray, atol: float = 1.0) -> str:
         return "Prolata"
     if a < b < c:
         return "Asimmetrica"
-    # Fallback teoricamente non raggiunto con i casi sopra
     return "Asimmetrica"
 
 
