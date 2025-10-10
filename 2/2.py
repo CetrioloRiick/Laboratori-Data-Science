@@ -3,30 +3,49 @@ import matplotlib.pyplot as plt
 
 
 def polynomial_model(coeffs, x):
-    powers = x ** np.arange(len(coeffs))
-    return np.dot(coeffs, powers)
+    x = np.asarray(x)
+    powers = x[:, None] ** np.arange(len(coeffs))
+    return powers @ coeffs
 
 
-def cost_function(coeffs, y_true, y):
-    N = len(coeffs)
-    res = np.sum((y_true - y) ** 2)
-    return 1 / (2 * N)
+def cost_function(coeffs: np.ndarray, x: np.ndarray, y: np.ndarray) -> float:
+    predictions = polynomial_model(coeffs, x)
+    errors = predictions - y
+    return np.mean(errors**2) / 2
+
+
+def gradient_cost_function(
+    coeffs: np.ndarray, x: np.ndarray, y: np.ndarray
+) -> np.ndarray:
+    predictions = polynomial_model(coeffs, x)
+    errors = predictions - y
+    N = len(x)
+
+    gradient = np.array([np.sum(errors * x**i) / N for i in range(len(coeffs))])
+    return gradient
 
 
 epsilon = 0.2
-n = 200
+n = 500
 
 x = np.random.uniform(0, 1, n)
 noise = np.random.uniform(-epsilon, epsilon, n)
 y = np.sin(2 * np.pi * x) + noise
 
-x_true = np.linspace(0, 1, 500)
+x_true = np.linspace(0, 1, n)
 y_true = np.sin(2 * np.pi * x_true)
 
-grado = 10
+grado = 15
 
 coeffs = np.random.uniform(-0.5, 0.5, grado)
-pippo = [polynomial_model(coeffs, x) for x in x_true]
+pippo = polynomial_model(coeffs, x)
+
+for i in range(100000):
+    grad = gradient_cost_function(coeffs, x, y)
+    costo = cost_function(coeffs, x, y)
+    for i, g in enumerate(grad):
+        coeffs[i] -= 0.01 * g
+pippo = polynomial_model(coeffs, x_true)
 
 
 plt.figure(figsize=(8, 5))
