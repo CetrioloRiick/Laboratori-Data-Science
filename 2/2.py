@@ -1,3 +1,4 @@
+from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -35,16 +36,18 @@ y = np.sin(2 * np.pi * x) + noise
 x_true = np.linspace(0, 1, n)
 y_true = np.sin(2 * np.pi * x_true)
 
-grado = 15
+grado = 60
 
 coeffs = np.random.uniform(-0.5, 0.5, grado)
 pippo = polynomial_model(coeffs, x)
 
-for i in range(100000):
-    grad = gradient_cost_function(coeffs, x, y)
-    costo = cost_function(coeffs, x, y)
-    for i, g in enumerate(grad):
-        coeffs[i] -= 0.01 * g
+with tqdm(range(300000), desc="Ottimizzazione", unit="iter") as t:
+    for i in t:
+        grad = gradient_cost_function(coeffs, x, y)
+        costo = cost_function(coeffs, x, y)
+        t.set_postfix({"Costo": f"{costo:.5f}"})
+        for i, g in enumerate(grad):
+            coeffs[i] -= 1 * g
 pippo = polynomial_model(coeffs, x_true)
 
 
