@@ -1,6 +1,11 @@
 from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
+import random
+
+
+def funzioneBella():
+    return np.sin(2 * np.pi * x_true)
 
 
 def polynomial_model(coeffs, x):
@@ -21,42 +26,46 @@ def gradient_cost_function(
     predictions = polynomial_model(coeffs, x)
     errors = predictions - y
     N = len(x)
-    deg = len(coeffs)
 
-    gradient = np.array([np.sum(errors * x**i) for i in range(deg)]) / N
+    gradient = np.array([np.sum(errors * x**i) / N for i in range(len(coeffs))])
     return gradient
 
 
-noise_amp = 0.2
-n_samples = 200
+epsilon = 0.02
+n = 2000
+len_batches = 100
 
-x = np.random.uniform(0, 1, n_samples)
-noise = np.random.uniform(-noise_amp, noise_amp, n_samples)
+x = np.random.uniform(0, 1, n)
+noise = np.random.uniform(-epsilon, epsilon, n)
 y = np.sin(2 * np.pi * x) + noise
+
+dati = [[x_i, y_i] for x_i, y_i in zip(x, y)]
 
 x_true = np.linspace(0, 1, 500)
 y_true = np.sin(2 * np.pi * x_true)
 
-grado = 50
+grado = 30
 
 coeffs = np.random.uniform(-0.5, 0.5, grado)
-pippo = polynomial_model(coeffs, x)
 
-
-with tqdm(range(40000), desc="Ottimizzazione", unit="iter") as t:
+with tqdm(range(7000), desc="Ottimizzazione", unit="iter") as t:
     for i in t:
-        grad = gradient_cost_function(coeffs, x, y)
-        costo = cost_function(coeffs, x, y)
-        t.set_postfix({"Costo": f"{costo:.5f}"})
-        coeffs -= 0.1 * grad
+        dati = np.random.permutation(dati)
+        batch = [dati[i : i + len_batches] for i in range(0, n, len_batches)]
+        batch = np.array(batch)
+        for element in batch:
+            grad = gradient_cost_function(coeffs, element[:, 0], element[:, 1])
+            costo = cost_function(coeffs, dati[:, 0], dati[:, 1])
+            t.set_postfix({"Costo": f"{costo:.5f}"})
+            for i, g in enumerate(grad):
+                coeffs[i] -= 0.1 * g
 pippo = polynomial_model(coeffs, x_true)
-print(coeffs)
 
 
 plt.figure(figsize=(8, 5))
 plt.scatter(x, y, s=25, alpha=0.6, label="Punti con rumore")
 plt.plot(x_true, y_true, color="black", lw=2, label="sin(2πx)")
-plt.plot(x_true, pippo, color="red", lw=2, label="model")
+plt.plot(x_true, pippo, color="blue", lw=2, label="model")
 
 plt.xlabel("x")
 plt.ylabel("y")
