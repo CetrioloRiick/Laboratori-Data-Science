@@ -24,8 +24,8 @@ def loss_and_grad(theta, V, y):
 
 # ---- data ----
 rng = np.random.default_rng(42)
-noise_amp = 0.02
-n_samples = 5
+noise_amp = 0.2
+n_samples = 200
 
 x = rng.uniform(0.0, 1.0, n_samples)
 noise = rng.uniform(-noise_amp, noise_amp, n_samples)

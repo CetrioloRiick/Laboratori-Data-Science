@@ -1,0 +1,6 @@
+###### Requirements without Version Specifiers ######
+numpy
+matplotlib
+ase
+tqdm
+mp-api

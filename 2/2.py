@@ -37,26 +37,37 @@ y = np.sin(2 * np.pi * x) + noise
 x_true = np.linspace(0, 1, 500)
 y_true = np.sin(2 * np.pi * x_true)
 
-grado = 50
+degree = 16
 
-coeffs = np.random.uniform(-0.5, 0.5, grado)
-pippo = polynomial_model(coeffs, x)
+coeffs = np.random.uniform(-0.5, 0.5, degree)
 
+for _ in range(3):
+    y_plot = polynomial_model(coeffs, x_true)
+    print(coeffs)
+    plt.figure(figsize=(8, 5))
+    plt.scatter(x, y, s=25, alpha=0.6, label="Punti con rumore")
+    plt.plot(x_true, y_true, color="black", lw=2, label="sin(2πx)")
+    plt.plot(x_true, y_plot, color="red", lw=2, label="model")
 
-with tqdm(range(40000), desc="Ottimizzazione", unit="iter") as t:
-    for i in t:
-        grad = gradient_cost_function(coeffs, x, y)
-        costo = cost_function(coeffs, x, y)
-        t.set_postfix({"Costo": f"{costo:.5f}"})
-        coeffs -= 0.1 * grad
-pippo = polynomial_model(coeffs, x_true)
-print(coeffs)
+    plt.xlabel("x")
+    plt.ylabel("y")
+    plt.title("Punti con rumore intorno a sin(2πx)")
+    plt.legend()
+    plt.grid(True, linestyle="--", alpha=0.4)
+    plt.show()
+
+    with tqdm(range(40000), desc="Ottimizzazione", unit="iter") as t:
+        for i in t:
+            grad = gradient_cost_function(coeffs, x, y)
+            cost = cost_function(coeffs, x, y)
+            t.set_postfix({"Costo": f"{cost:.6e}"})
+            coeffs -= 0.1 * grad
 
 
 plt.figure(figsize=(8, 5))
 plt.scatter(x, y, s=25, alpha=0.6, label="Punti con rumore")
 plt.plot(x_true, y_true, color="black", lw=2, label="sin(2πx)")
-plt.plot(x_true, pippo, color="red", lw=2, label="model")
+plt.plot(x_true, y_plot, color="red", lw=2, label="model")
 
 plt.xlabel("x")
 plt.ylabel("y")
