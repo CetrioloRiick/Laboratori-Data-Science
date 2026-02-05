@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd  # Aggiunto per gestire meglio le correlazioni
+import seaborn as sns
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.preprocessing import StandardScaler
@@ -113,6 +114,22 @@ for feature in target_corr_sorted.index:
     print(f"{feature:35s}: {corr_value:+.4f}")
 print("-" * 50)
 
+
+plt.figure(figsize=(10, 8))
+sns.heatmap(
+    corr_matrix,
+    annot=True,
+    square=True,
+    cmap='icefire',
+    fmt=".2f",
+    linewidths=0.5
+    )
+plt.title("Matrice di correlazione", fontsize=16)
+plt.tight_layout()
+
+#Salvataggio
+plt.savefig('CorrelationMatrix.png', dpi=300, bbox_inches='tight')
+print(f"Figura Salvata.")
 
 # --- TRAINING E TEST ---
 

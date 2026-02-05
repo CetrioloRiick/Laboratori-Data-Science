@@ -39,7 +39,6 @@ with MPRester(API_KEY) as mpr:
         num_elements=2,
         # band_gap=(0.0001, 10000000000),
         fields=FIELDS,
-        num_chunks=1,
         chunk_size=1000,
     )
 
