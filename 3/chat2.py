@@ -1,21 +1,22 @@
 import numpy as np
-import pandas as pd  # Aggiunto per gestire meglio le correlazioni
+import pandas as pd
 import seaborn as sns
+import matplotlib.pyplot as plt
+import pickle
+
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.preprocessing import StandardScaler, PolynomialFeatures
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
-import matplotlib.pyplot as plt
-import pickle
+
 
 # --- FUNZIONI DI ANALISI ---
 
 
-def analizza_errore_per_range(y_true, y_pred):
+def analizza_errore_per_range(y_true, y_pred, y_min=0.0, y_max=9.0, n_bins=10):
     """
-    Calcola e stampa l'MSE (errore quadratico medio) per diverse fasce
-    di valore del band-gap (Y).
+    Calcola e stampa l'MSE per fasce di valore del band-gap (Y).
     """
     data = np.asarray(y_true).ravel()
     pred = np.asarray(y_pred).ravel()
@@ -26,54 +27,59 @@ def analizza_errore_per_range(y_true, y_pred):
         )
 
     print("\n--- Analisi Errore per fasce di Band Gap ---")
-    # Definiamo dei range (bin) per il band gap.
-    # Nota: Ho esteso leggermente il range massimo per sicurezza.
-    thresholds = np.linspace(0, 9.0, 10)
+    thresholds = np.linspace(y_min, y_max, n_bins)
 
     prev = -np.inf
     for t in thresholds:
-        # Maschera per selezionare i dati nel range corrente
         mask = (data > prev) & (data <= t)
-
         if np.any(mask):
-            # Calcolo MSE solo su questo sottoinsieme
             e = mean_squared_error(data[mask], pred[mask])
             count = np.sum(mask)
-            print(f"Range ({prev:5.2f}, {t:5.2f}]: MSE = {e:.4f} (su {count} campioni)")
-        else:
-            pass  # Non stampiamo nulla se il bin è vuoto per pulizia
+            print(f"Range ({prev:6.2f}, {t:6.2f}]: MSE = {e:.4f} (su {count} campioni)")
         prev = t
-    print("-" * 40)
+    print("-" * 50)
 
 
-def printStats(model, X_train, X_test, Y_train, Y_test):
-    Y_train_pred = model.predict(X_train)
-    Y_test_pred = model.predict(X_test)
-
-    train_error = mean_squared_error(Y_train, Y_train_pred)
-    test_error = mean_squared_error(Y_test, Y_test_pred)
-    r2 = r2_score(Y_test, Y_test_pred)
-
-    print(f"MSE Train: {train_error:.4f}")
-    print(f"MSE Test:  {test_error:.4f}")
-    print(f"R2 Score:  {r2:.4f}")
-
-    # Richiamo la funzione per vedere l'errore al variare del band-gap
-    analizza_errore_per_range(Y_test, Y_test_pred)
-
-    # Print dei coefficenti
+def coefficients_table_linear(pipe: Pipeline, feature_names):
+    """
+    Tabella coefficienti per modelli lineari (senza PolynomialFeatures).
+    """
     model = pipe.named_steps["model"]
-    coefs = model.coef_
-    print("\nCoefficienti:")
-    for f, c in zip(FEATURES, coefs):
-        if abs(c) > 1e-4:  # Stampa solo quelli rilevanti
-            print(f"{f}: {c:.4f}")
-        else:
-            print(f"{f}: --- (Scartata)")
+    coefs = np.asarray(model.coef_).ravel()
 
-def printStatsPoli(model, X_train, X_test, Y_train, Y_test):
-    Y_train_pred = model.predict(X_train)
-    Y_test_pred = model.predict(X_test)
+    df = pd.DataFrame(
+        {"feature": feature_names, "coef": coefs, "abs_coef": np.abs(coefs)}
+    ).sort_values("abs_coef", ascending=False)
+
+    return df
+
+
+def coefficients_table_poly(pipe: Pipeline, base_feature_names):
+    """
+    Tabella coefficienti per pipeline con PolynomialFeatures.
+    Usa i nomi espansi corretti (x0, x0^2, x0 x1, ... ma con i nomi reali delle feature).
+    """
+    poly = pipe.named_steps["poli"]
+    model = pipe.named_steps["model"]
+
+    expanded_names = poly.get_feature_names_out(base_feature_names)
+    coefs = np.asarray(model.coef_).ravel()
+
+    if len(expanded_names) != len(coefs):
+        raise ValueError(
+            f"Mismatch: {len(expanded_names)} nomi vs {len(coefs)} coefficienti"
+        )
+
+    df = pd.DataFrame(
+        {"poly_feature": expanded_names, "coef": coefs, "abs_coef": np.abs(coefs)}
+    ).sort_values("abs_coef", ascending=False)
+
+    return df
+
+
+def printStats(pipe: Pipeline, X_train, X_test, Y_train, Y_test, feature_names):
+    Y_train_pred = pipe.predict(X_train)
+    Y_test_pred = pipe.predict(X_test)
 
     train_error = mean_squared_error(Y_train, Y_train_pred)
     test_error = mean_squared_error(Y_test, Y_test_pred)
@@ -83,18 +89,38 @@ def printStatsPoli(model, X_train, X_test, Y_train, Y_test):
     print(f"MSE Test:  {test_error:.4f}")
     print(f"R2 Score:  {r2:.4f}")
 
-    # Richiamo la funzione per vedere l'errore al variare del band-gap
     analizza_errore_per_range(Y_test, Y_test_pred)
 
-    # Print dei coefficenti
-    model = last_pipe.named_steps["model"]
-    coefs = model.coef_
-    print("\nCoefficienti:")
-    for f, c in zip(FEATURES, coefs):
-        if abs(c) > 1e-4:  # Stampa solo quelli rilevanti
-            print(f"{f}: {c:.4f}")
-        else:
-            print(f"{f}: --- (Scartata)")
+    # Coefficienti in tabella (solo se il modello è lineare e non polinomiale)
+    df_coef = coefficients_table_linear(pipe, feature_names)
+    print("\nCoefficienti (ordinati per |coef|):")
+    print(df_coef.to_string(index=False, justify="left", col_space=2))
+
+
+def printStatsPoli(
+    pipe: Pipeline, X_train, X_test, Y_train, Y_test, base_feature_names, top_k=None
+):
+    Y_train_pred = pipe.predict(X_train)
+    Y_test_pred = pipe.predict(X_test)
+
+    train_error = mean_squared_error(Y_train, Y_train_pred)
+    test_error = mean_squared_error(Y_test, Y_test_pred)
+    r2 = r2_score(Y_test, Y_test_pred)
+
+    print(f"MSE Train: {train_error:.4f}")
+    print(f"MSE Test:  {test_error:.4f}")
+    print(f"R2 Score:  {r2:.4f}")
+
+    analizza_errore_per_range(Y_test, Y_test_pred)
+
+    # Coefficienti polynomial in tabella
+    df_poly = coefficients_table_poly(pipe, base_feature_names)
+
+    if top_k is not None:
+        df_poly = df_poly.head(top_k)
+
+    print("\nCoefficienti Polynomial (ordinati per |coef|):")
+    print(df_poly.to_string(index=False, justify="left", col_space=2))
 
 
 # --- CARICAMENTO DATI ---
@@ -112,25 +138,25 @@ FEATURES = [
     "num_magnetic_sites",
 ]
 
-# Assicurati che i file X.dat e Y.dat siano nella stessa cartella
 try:
     X = pickle.load(open("X.dat", "rb"))
     Y = pickle.load(open("Y.dat", "rb"))
 except FileNotFoundError:
     print("Errore: File .dat non trovati. Assicurati di averli generati.")
-    exit()
+    raise SystemExit(1)
 
-# --- ANALISI CORRELAZIONI (Nuova Sezione) ---
+X = np.asarray(X)
+Y = np.asarray(Y).ravel()  # IMPORTANTISSIMO: 1D
+
+
+# --- ANALISI CORRELAZIONI ---
 
 print("### ANALISI CORRELAZIONE FEATURE-TARGET ###")
-# Creiamo un DataFrame temporaneo per calcolare facilmente le correlazioni
 df_analysis = pd.DataFrame(X, columns=FEATURES)
 df_analysis["BAND_GAP_TARGET"] = Y
 
-# Calcoliamo la matrice di correlazione
-corr_matrix = df_analysis.corr()
+corr_matrix = df_analysis.corr(numeric_only=True)
 
-# Estraiamo le correlazioni con il target e ordiniamo per valore assoluto
 target_corr = corr_matrix["BAND_GAP_TARGET"].drop("BAND_GAP_TARGET")
 target_corr_sorted = target_corr.abs().sort_values(ascending=False)
 
@@ -140,19 +166,17 @@ for feature in target_corr_sorted.index:
     print(f"{feature:35s}: {corr_value:+.4f}")
 print("-" * 50)
 
-
 plt.figure(figsize=(10, 8))
 sns.heatmap(
     corr_matrix, annot=True, square=True, cmap="icefire", fmt=".2f", linewidths=0.5
 )
 plt.title("Matrice di correlazione", fontsize=16)
 plt.tight_layout()
-
-# Salvataggio
 plt.savefig("CorrelationMatrix.png", dpi=300, bbox_inches="tight")
-print(f"Figura Salvata.")
+print("Figura Salvata: CorrelationMatrix.png")
 
-# --- TRAINING E TEST ---
+
+# --- TRAIN / TEST ---
 
 X_train, X_test, Y_train, Y_test = train_test_split(
     X, Y, test_size=0.3, random_state=42
@@ -176,21 +200,22 @@ pipelines = [
 for name, pipe in pipelines:
     print(f"\n{'='*20}\nModello: {name}\n{'='*20}")
     pipe.fit(X_train, Y_train)
-
-    # Passiamo anche i dati a printStats per poter calcolare le predizioni dentro
-    printStats(pipe, X_train, X_test, Y_train, Y_test)
-
-    # Se è Lasso, stampiamo quali feature ha azzerato (Feature Selection)
+    printStats(pipe, X_train, X_test, Y_train, Y_test, FEATURES)
 
 
+# --- POLYNOMIAL REGRESSION ---
 
 print(f"\n{'='*20}\nModello: Regressione Polinomiale\n{'='*20}")
+
 last_pipe = Pipeline(
     [
-        ("poli", PolynomialFeatures(degree=2, include_bias=False)),
+        ("poli", PolynomialFeatures(degree=3, include_bias=False)),
         ("scaler", StandardScaler()),
-        ("model", Ridge(alpha=5000.0)),
+        ("model", Ridge(alpha=110.0)),
     ]
 )
+
 last_pipe.fit(X_train, Y_train)
-printStatsPoli(pipe, X_train, X_test, Y_train, Y_test)
+
+# top_k=None stampa tutti; metti tipo top_k=30 per i 30 più importanti
+printStatsPoli(last_pipe, X_train, X_test, Y_train, Y_test, FEATURES, top_k=50)
