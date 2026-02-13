@@ -2,3 +2,5 @@
 **/.ipynb_checkpoints/
 *.nix
 *.dat
+*.pkl
+*.old
