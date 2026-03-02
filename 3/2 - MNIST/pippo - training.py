@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import pickle
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
@@ -29,7 +28,7 @@ pippo.fit(X_train, y_train)
 pickle.dump(pippo, open("pippo.pkl", "wb"))
 
 
-# TEST
+""" # TEST
 
 y_test_pred = pippo.predict(X_test)
 weight = pippo.named_steps["model"].coef_.copy()
@@ -61,3 +60,4 @@ sparsity = np.mean(weight == 0)
 sparsity_tol = np.mean(np.isclose(weight, 0, atol=tol))
 print(f"Sparsity:   {sparsity:.2%}")
 print(f"Sparsity (with tolerance):   {sparsity_tol:.2%}")
+ """

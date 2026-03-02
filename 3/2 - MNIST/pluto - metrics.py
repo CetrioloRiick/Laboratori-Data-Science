@@ -27,12 +27,10 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # STAMPO LE METRICHE DEL DATASET
-print("varianza")
-
 try:
     pippo = pickle.load(
         open(
-            "/home/diego/Documents/Uni/Data_science/Laboratori/3/pca/1000iterations.pkl",
+            "/home/diego/Documents/Uni/Data_science/Laboratori/3/2 - MNIST/lastrun.pkl",
             "rb",
         )
     )
@@ -84,7 +82,7 @@ for n in n_components:
     print("\nNumero di compontenti:", n)
     print("Varianza:", cumulative_variance)
 
-    """ while input("continue?") == "s":
+    while input("continue?") == "s":
         fig, axes = plt.subplots(2, 1, figsize=(10, 8), constrained_layout=True)
         fig.suptitle(f"Originale vs Ricostruzione", fontsize=12)
         n = int(input("numerino fino a 10.000"))
@@ -96,7 +94,7 @@ for n in n_components:
         X_pca_sample = pca_instance.transform(X_sample)
         X_reconstructed = pca_instance.inverse_transform(X_pca_sample)
         axes[1].imshow(np.reshape(X_reconstructed, shape=(28, 28)), cmap="gray")
-        plt.show() """
+        plt.show()
 
 # PCA IN 2D (i)
 pca_instance = PCA(n_components=2, random_state=42)
