@@ -4702,17 +4702,17 @@
      xml:space="preserve"
      transform="matrix(0.75,0,0,0.75,-150.69508,-69.757372)"
      id="text1"
-     style="writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1);fill:#000000" />
+     style="writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1);display:inline;fill:#000000" />
   <text
      xml:space="preserve"
      transform="matrix(0.75,0,0,0.75,-150.69508,-69.757372)"
      id="text2"
-     style="writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2);fill:#000000" />
+     style="writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2);display:inline;fill:#000000" />
   <text
      xml:space="preserve"
      transform="matrix(0.75,0,0,0.75,-177.12723,-68.61503)"
      id="text3"
-     style="font-size:53.3333px;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3);fill:#000000"
+     style="font-size:53.3333px;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3);display:inline;fill:#000000"
      x="232.29146"
      y="0"><tspan
        x="322.96155"
@@ -4772,7 +4772,7 @@
      xml:space="preserve"
      transform="matrix(0.75,0,0,0.75,-150.69508,-69.757372)"
      id="text4"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:53.3333px;font-family:FreeSerif;-inkscape-font-specification:FreeSerif;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect4);fill:#000000" />
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:53.3333px;font-family:FreeSerif;-inkscape-font-specification:FreeSerif;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect4);display:inline;fill:#000000" />
   <text
      xml:space="preserve"
      transform="matrix(0.75,0,0,0.75,-177.12723,224.3846)"
