@@ -1,14 +1,15 @@
-import numpy as np
 import os
-import matplotlib.pyplot as plt
 import pickle
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+
+import matplotlib.pyplot as plt
+import numpy as np
 from sklearn.datasets import fetch_openml
 from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 
 def sparsity(weights):
@@ -25,7 +26,7 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=10000, train_size=50000, random_state=42
 )
 
-pca = PCA(n_components=50, random_state=42)
+pca = PCA(n_components=100, random_state=42)
 pca.fit(X_train)
 
 pippo = Pipeline(

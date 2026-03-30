@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg
-   width="1382.4pt"
-   height="699.12pt"
-   viewBox="0 0 1382.4 699.12"
+   width="1262.629pt"
+   height="614.09998pt"
+   viewBox="-40 -40 1262.629 614.09998"
    version="1.1"
    id="svg409"
    sodipodi:docname="MINST-weights.svg"
@@ -25,15 +25,15 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="pt"
-     inkscape:zoom="0.72538179"
-     inkscape:cx="862.30452"
-     inkscape:cy="483.88311"
+     inkscape:zoom="0.72283827"
+     inkscape:cx="705.55202"
+     inkscape:cy="379.06128"
      inkscape:window-width="1920"
      inkscape:window-height="1011"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg409" />
+     inkscape:current-layer="figure_1" />
   <metadata
      id="metadata1">
     <rdf:RDF>
@@ -52,19 +52,91 @@
   </metadata>
   <defs
      id="defs1">
+    <rect
+       x="388.7608"
+       y="130.96552"
+       width="110.28675"
+       height="140.61562"
+       id="rect4" />
+    <rect
+       x="292.25989"
+       y="78.579308"
+       width="197.13756"
+       height="84.093643"
+       id="rect3" />
+    <rect
+       x="363.94626"
+       y="465.96152"
+       width="42.736115"
+       height="27.571688"
+       id="rect2" />
+    <rect
+       x="299.1528"
+       y="438.38983"
+       width="121.31542"
+       height="75.822144"
+       id="rect1" />
     <style
        type="text/css"
        id="style1">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+    <rect
+       x="292.25989"
+       y="78.579308"
+       width="197.13756"
+       height="84.093643"
+       id="rect3-3" />
+    <rect
+       x="292.25989"
+       y="78.579308"
+       width="197.13756"
+       height="84.093643"
+       id="rect3-5" />
+    <rect
+       x="292.25989"
+       y="78.579308"
+       width="197.13756"
+       height="84.093643"
+       id="rect3-37" />
+    <rect
+       x="292.25989"
+       y="78.579308"
+       width="197.13756"
+       height="84.093643"
+       id="rect3-7" />
+    <rect
+       x="292.25989"
+       y="78.579308"
+       width="197.13756"
+       height="84.093643"
+       id="rect3-6" />
+    <rect
+       x="292.25989"
+       y="78.579308"
+       width="197.13756"
+       height="84.093643"
+       id="rect3-7-4" />
+    <rect
+       x="292.25989"
+       y="78.579308"
+       width="197.13756"
+       height="84.093643"
+       id="rect3-37-9" />
+    <rect
+       x="292.25989"
+       y="78.579308"
+       width="197.13756"
+       height="84.093643"
+       id="rect3-3-5" />
+    <rect
+       x="292.25989"
+       y="78.579308"
+       width="197.13756"
+       height="84.093643"
+       id="rect3-5-0" />
   </defs>
   <g
-     id="figure_1">
-    <g
-       id="patch_1">
-      <path
-         d="M 0,699.12 H 1382.4 V 0 H 0 Z"
-         style="fill:#ffffff"
-         id="path1" />
-    </g>
+     id="figure_1"
+     transform="translate(-153.80781,-72.870102)">
     <g
        id="axes_1">
       <g
@@ -4626,4 +4698,139 @@
          id="rect409" />
     </clipPath>
   </defs>
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,-150.69508,-69.757372)"
+     id="text1"
+     style="writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect1);fill:#000000" />
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,-150.69508,-69.757372)"
+     id="text2"
+     style="writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect2);fill:#000000" />
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,-177.12723,-68.61503)"
+     id="text3"
+     style="font-size:53.3333px;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3);fill:#000000"
+     x="232.29146"
+     y="0"><tspan
+       x="322.96155"
+       y="127.91338"
+       id="tspan2"><tspan
+         style="font-family:FreeSerif;-inkscape-font-specification:FreeSerif"
+         id="tspan1">cifra 0</tspan></tspan></text>
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,487.85278,-68.61503)"
+     id="text3-0"
+     style="font-size:53.3333px;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3-3);display:inline;fill:#000000;stroke-linecap:butt;stroke-linejoin:round"
+     x="232.29146"
+     y="0"><tspan
+       x="322.96155"
+       y="127.91338"
+       id="tspan11"><tspan
+         style="font-family:FreeSerif;-inkscape-font-specification:FreeSerif"
+         id="tspan3">cifra 3</tspan></tspan></text>
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,709.51278,-68.61503)"
+     id="text3-7"
+     style="font-size:53.3333px;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3-5);display:inline;fill:#000000;stroke-linecap:butt;stroke-linejoin:round"
+     x="232.29146"
+     y="0"><tspan
+       x="322.96155"
+       y="127.91338"
+       id="tspan13"><tspan
+         style="font-family:FreeSerif;-inkscape-font-specification:FreeSerif"
+         id="tspan12">cifra 4</tspan></tspan></text>
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,266.19278,-68.61503)"
+     id="text3-5"
+     style="font-size:53.3333px;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3-37);display:inline;fill:#000000;stroke-linecap:butt;stroke-linejoin:round"
+     x="232.29146"
+     y="0"><tspan
+       x="322.96155"
+       y="127.91338"
+       id="tspan15"><tspan
+         style="font-family:FreeSerif;-inkscape-font-specification:FreeSerif"
+         id="tspan14">cifra 2</tspan></tspan></text>
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,44.532777,-68.61503)"
+     id="text3-4"
+     style="font-size:53.3333px;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3-7);display:inline;fill:#000000;stroke-linecap:butt;stroke-linejoin:round"
+     x="232.29146"
+     y="0"><tspan
+       x="322.96155"
+       y="127.91338"
+       id="tspan17"><tspan
+         style="font-family:FreeSerif;-inkscape-font-specification:FreeSerif"
+         id="tspan16">cifra 1</tspan></tspan></text>
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,-150.69508,-69.757372)"
+     id="text4"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:53.3333px;font-family:FreeSerif;-inkscape-font-specification:FreeSerif;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect4);fill:#000000" />
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,-177.12723,224.3846)"
+     id="text3-8"
+     style="font-size:53.3333px;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3-6);display:inline;fill:#000000;stroke-linecap:butt;stroke-linejoin:round"
+     x="232.29146"
+     y="0"><tspan
+       x="322.96155"
+       y="127.91338"
+       id="tspan19"><tspan
+         style="font-family:FreeSerif;-inkscape-font-specification:FreeSerif"
+         id="tspan18">cifra 5</tspan></tspan></text>
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,487.85278,224.3846)"
+     id="text3-0-2"
+     style="font-size:53.3333px;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3-3-5);display:inline;fill:#000000;stroke-linecap:butt;stroke-linejoin:round"
+     x="232.29146"
+     y="0"><tspan
+       x="322.96155"
+       y="127.91338"
+       id="tspan21"><tspan
+         style="font-family:FreeSerif;-inkscape-font-specification:FreeSerif"
+         id="tspan20">cifra 8</tspan></tspan></text>
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,709.51278,224.3846)"
+     id="text3-7-2"
+     style="font-size:53.3333px;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3-5-0);display:inline;fill:#000000;stroke-linecap:butt;stroke-linejoin:round"
+     x="232.29146"
+     y="0"><tspan
+       x="322.96155"
+       y="127.91338"
+       id="tspan23"><tspan
+         style="font-family:FreeSerif;-inkscape-font-specification:FreeSerif"
+         id="tspan22">cifra 9</tspan></tspan></text>
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,266.19278,224.3846)"
+     id="text3-5-6"
+     style="font-size:53.3333px;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3-37-9);display:inline;fill:#000000;stroke-linecap:butt;stroke-linejoin:round"
+     x="232.29146"
+     y="0"><tspan
+       x="322.96155"
+       y="127.91338"
+       id="tspan25"><tspan
+         style="font-family:FreeSerif;-inkscape-font-specification:FreeSerif"
+         id="tspan24">cifra 7</tspan></tspan></text>
+  <text
+     xml:space="preserve"
+     transform="matrix(0.75,0,0,0.75,44.532777,224.3846)"
+     id="text3-4-1"
+     style="font-size:53.3333px;text-align:center;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3-7-4);display:inline;fill:#000000;stroke-linecap:butt;stroke-linejoin:round"
+     x="232.29146"
+     y="0"><tspan
+       x="322.96155"
+       y="127.91338"
+       id="tspan27"><tspan
+         style="font-family:FreeSerif;-inkscape-font-specification:FreeSerif"
+         id="tspan26">cifra 6</tspan></tspan></text>
 </svg>
