@@ -2,6 +2,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import pickle
+from matplotlib.colors import ListedColormap
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -19,7 +20,7 @@ def sparsity_tol(weights, tol=1e-4):
     return np.mean(np.isclose(weights, 0, atol=tol))
 
 
-vuoiStampareLeFoto = True
+vuoiStampareLeFoto = False
 # RECUPERO DATI E MODELLO
 X, y = fetch_openml("mnist_784", version=1, return_X_y=True)
 
@@ -75,7 +76,7 @@ fig.colorbar(im, cax=cax)
 plt.show()
 # PCA SUL DATASET (g, h)
 
-n_components = [5, 10, 29, 125, 256]
+n_components = []
 variances = []
 for n in n_components:
     pca_instance = PCA(n_components=n, random_state=42)
@@ -117,52 +118,31 @@ plt.imshow(np.reshape(X_sample, shape=(28, 28)), cmap="gray")
 plt.savefig("original.svg")
 plt.close("all")
 
-## ROBA DI GEMINI PER FARE IL GRAFICO CARINO
-plt.figure(figsize=(10, 6))
-plt.style.use("seaborn-v0_8-whitegrid")
 
-# Grafico principale con marker per evidenziare i punti
-plt.plot(
-    n_components,
-    variances,
-    marker="o",
-    linestyle="-",
-    color="b",
-    linewidth=2,
-    label="Varianza singola",
-)
-
-# Grafico della varianza cumulata (opzionale ma molto utile nella PCA)
-cumulative_variance = np.cumsum(variances)
-plt.step(
-    n_components,
-    cumulative_variance,
-    where="mid",
-    alpha=0.5,
-    color="red",
-    label="Varianza cumulata",
-)
-
-# Titoli e etichette
-plt.title("Analisi della Varianza Spiegata (PCA)", fontsize=15, pad=20)
-plt.xlabel("Numero di Componenti Principali (n_components)", fontsize=12)
-plt.ylabel("Rapporto di Varianza Spiegata", fontsize=12)
-
-# Personalizzazione degli assi
-plt.xticks(n_components)  # Forza la visualizzazione di tutti i numeri di componenti
-plt.ylim(0, 1.05)  # La varianza va da 0 a 1
-
-# Aggiunta di una linea di soglia (es. 90% varianza)
-plt.axhline(y=0.90, color="green", linestyle="--", alpha=0.7)
-plt.text(0.5, 0.92, "Soglia 90%", color="green", fontweight="bold")
-
-plt.legend(loc="best")
-plt.tight_layout()  # Ottimizza lo spazio tra i vari elementi
-
-plt.show()
-
-# PCA IN 2D (i)
 pca_instance = PCA(n_components=2, random_state=42)
 X_train_transformed = pca_instance.fit_transform(X_train)
-plt.scatter(X_train_transformed[:, 0], X_train_transformed[:, 1], s=1)
+
+# PCA IN 2D (i)
+# 1. Prepariamo i colori (usiamo la tua lista)
+colors = ['red', 'blue', 'pink', 'yellow', 'black', 'orange', 'purple', 'green', 'brown', 'gray']
+cmap_custom = ListedColormap(colors)
+
+# 2. Convertiamo y_train in interi (se sono stringhe) per usarli come indici dei colori
+y_numeric = y_train.astype(int)
+
+# 3. Scatter plot unico
+plt.figure(figsize=(10, 8))
+scatter = plt.scatter(X_train_transformed[:, 0], X_train_transformed[:, 1], 
+                      c=y_numeric, cmap=cmap_custom, s=1)
+
+# 4. Legenda automatica
+# legend_elements() crea i "quadratini" colorati basandosi sulla colormap
+plt.legend(handles=scatter.legend_elements()[0], 
+           labels=[str(i) for i in range(10)],
+           title="Classi",
+           markerscale=2) # Ingrandisce i pallini nella legenda (sennò con s=1 non li vedi)
+
+plt.title("Visualizzazione PCA dei dati")
+plt.xlabel("Componente Principale 1")
+plt.ylabel("Componente Principale 2")
 plt.show()
