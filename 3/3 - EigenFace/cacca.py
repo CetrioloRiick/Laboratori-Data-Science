@@ -3,7 +3,7 @@ import scipy
 import matplotlib.pyplot as plt
 import joblib
 import os
-import cv2
+import time
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
@@ -19,26 +19,32 @@ def facesProcessing(data):
     return faces_final
 
 
-def process_image(image_path = "3/3 - EigenFace/foto.png"):
-    # 1. Carica l'immagine dal percorso fornito
-    img = cv2.imread(image_path)
-    
-    if img is None:
-        raise FileNotFoundError(f"Impossibile trovare o caricare l'immagine al percorso: {image_path}")
+def process_image(image_path="3/3 - EigenFace/foto.png"):
+    # Carica, converte in scala di grigi ('L') e riscala
+    img = Image.open(image_path).convert("L")
+    visualizzamiStaFaccia(img)
+    # Converte in array numpy e appiattisce
+    return np.array(img).flatten()
 
-    # 2. Conversione in scala di grigi
-    # Passiamo da 3 canali (BGR) a 1 singolo canale
-    gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # 3. Riscalaggio a 192x168
-    # Nota: OpenCV usa il formato (larghezza, altezza)
-    resized_img = cv2.resize(gray_img, (192, 168))
+def visualizzamiStaFaccia(vettore):
+    plt.imshow(np.reshape(vettore, fc_shape), cmap="gray")
+    plt.savefig(str(time.time()) + ".png")
 
-    # 4. Flattening: trasforma la matrice in un vettore riga singolo
-    flat_vector = resized_img.flatten()
+    plt.show()
 
-    return flat_vector
 
+def pss(model, vector):
+    """Esegue il transform su un singolo vettore flat."""
+    return model.transform(vector.reshape(1, -1))[0]
+
+
+def pss_inverse(model, vector):
+    """Esegue il transform su un singolo vettore flat."""
+    return model.inverse_transform(vector.reshape(1, -1))[0]
+
+
+vuoiSalvareLe100AutoFacce = False
 fc_shape = (192, 168)
 mat_contents = scipy.io.loadmat("3/3 - EigenFace/allFaces.mat")
 faces = facesProcessing(mat_contents)
@@ -72,23 +78,40 @@ print(len(pca.components_))
 
 # Le eigenfaces sono contenute in pca.components_
 # Ogni riga è una 'faccia' nel linguaggio delle componenti principali
-for i in range(100):
-    # 1. Prendi la i-esima componente
-    eigen_vector = pca.components_[i]
-    
-    # 2. Reshape (attenzione: verifica se serve il .T in base a come hai caricato i dati)
-    eigen_face = eigen_vector.reshape(fc_shape)
-    
-    # 3. NORMALIZZAZIONE (Fondamentale)
-    # Le eigenfaces hanno valori positivi e negativi. 
-    # Per vederle come PNG dobbiamo portarle nel range [0, 255]
-    f_min, f_max = eigen_face.min(), eigen_face.max()
-    eigen_face_normalized = (eigen_face - f_min) / (f_max - f_min) * 255
-    
-    # 4. Conversione e salvataggio
-    img_array = eigen_face_normalized.astype(np.uint8)
-    img = Image.fromarray(img_array)
-    img.save(f"{i}.png")
+if vuoiSalvareLe100AutoFacce:
+    for i in range(100):
+        # 1. Prendi la i-esima componente
+        eigen_vector = pca.components_[i]
+
+        # 2. Reshape (attenzione: verifica se serve il .T in base a come hai caricato i dati)
+        eigen_face = eigen_vector.reshape(fc_shape)
+
+        # 3. NORMALIZZAZIONE (Fondamentale)
+        # Le eigenfaces hanno valori positivi e negativi.
+        # Per vederle come PNG dobbiamo portarle nel range [0, 255]
+        f_min, f_max = eigen_face.min(), eigen_face.max()
+        eigen_face_normalized = (eigen_face - f_min) / (f_max - f_min) * 255
+
+        # 4. Conversione e salvataggio
+        img_array = eigen_face_normalized.astype(np.uint8)
+        img = Image.fromarray(img_array)
+        img.save(f"{i}.png")
+
+# myFace = pss(st_instance, process_image())
+myFace = faces[np.random.randint(0, 2410)]
+visualizzamiStaFaccia(myFace)
+
+myFacePCA = pss(pca, myFace)
+
+componentiPerVisualizzareLaMiaFaccia = np.linspace(5, 2400, 20, dtype=int)
+
+for element in componentiPerVisualizzareLaMiaFaccia:
+    myFacePCA_filtered = myFacePCA.copy()
+
+    # Imposta a zero tutti gli elementi dalla posizione 'element' in poi
+    myFacePCA_filtered[element:] = 0
+    facciaDaVedere = pss_inverse(pca, myFacePCA_filtered)
+    visualizzamiStaFaccia(facciaDaVedere)
 
 
 """ 
