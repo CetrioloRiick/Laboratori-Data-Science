@@ -1,0 +1,748 @@
+%% File principale LaTeX
+\documentclass[a4paper,11pt]{article}
+
+% Pacchetti
+\usepackage[utf8]{inputenc}
+\usepackage[italian]{babel}
+\usepackage[export]{adjustbox}
+\usepackage{hyperref}
+\usepackage{geometry}
+\usepackage{booktabs}
+\geometry{a4paper, margin=0.75in}
+
+\usepackage{float}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{mathtools}
+\usepackage{listings}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{datetime2}
+% --- GESTIONE CAPTION (Aggiunto qui) ---
+\usepackage{caption}
+\captionsetup{
+    font=footnotesize,           % Dimensione ridotta del testo
+    labelfont=bf,        % "Tabella 1" in grassetto
+    tableposition=top,    % Spaziatura ottimizzata per tabelle
+    figureposition=bottom % Spaziatura ottimizzata per figure
+}
+% ---------------------------------------
+\renewcommand{\tablename}{Tabella}
+%\usepackage[a4paper, left=3cm, right=3cm]{geometry}
+
+
+\title{Relazione – Laboratori di Data Science (Regressione Lineare e PCA)}
+\author{Quarantani Diego}
+\date{\DTMtoday}
+
+\usepackage[most]{tcolorbox}
+\usepackage{fvextra} % migliora verbatim (a capo, ecc.)
+
+\newtcolorbox{terminal}{
+  colback=black!3,
+  colframe=black!40,
+  boxrule=0.4pt,
+  arc=2mm,
+  left=2mm,right=2mm,top=1mm,bottom=1mm
+}
+\setlength{\parindent}{0pt}
+\begin{document}
+
+
+
+
+%New colors defined below
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+%Code listing style named "mystyle"
+\lstdefinestyle{mystyle}{
+  backgroundcolor=\color{backcolour},
+  commentstyle=\color{codegreen},
+  keywordstyle=\color{magenta},
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{codepurple},
+  basicstyle=\ttfamily\footnotesize,
+  breakatwhitespace=false,         
+  breaklines=true,                 
+  captionpos=b,                    
+  keepspaces=true,                 
+  numbers=left,                    
+  numbersep=5pt,                  
+  showspaces=false,                
+  showstringspaces=false,
+  showtabs=false,                  
+  tabsize=2
+}
+
+%"mystyle" code listing set
+\lstset{style=mystyle}
+
+
+
+
+\maketitle
+
+Questa relazione raccoglie lo svolgimento degli esercizi del \textbf{Foglio 3 – Regressione Lineare e PCA} del corso di Data Science (Laurea in Fisica, Alma Mater Studiorum – Università di Bologna, a.a. 2025/2026).
+Per tutto il codice, si rimanda alla repository GitHub: \href{https://github.com/CetrioloRiick/Laboratori-Data-Science.git}{Laboratori-Data-Science}
+
+\section{Ampiezza della banda proibita in composti binari}
+\subsection{Design del codice}
+
+L’analisi inizia con una \textbf{query} al database Materials Project, dalla quale vengono estratti tutti i composti binari insieme ai campi (\texttt{FIELDS}) di interesse:
+
+\begin{lstlisting}[language=Python]
+with MPRester(API_KEY) as mpr:
+    docs = mpr.materials.summary.search(
+        num_elements=2,
+        fields=FIELDS,
+        chunk_size=1000,
+    )
+\end{lstlisting}
+
+I dati ottenuti vengono successivamente organizzati in due array: X, contenente le dieci variabili descrittive per ciascun materiale, e Y, contenente i corrispondenti valori di band gap. Per ottimizzare l’esecuzione del programma, entrambi gli array vengono salvati su disco tramite la libreria \textbf{pickle}, evitando di ripetere il download ad ogni esecuzione.\\
+
+\iffalse
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Analisi della correlazione tra le feature descrittive e il Band Gap target.}
+\label{tab:regression_comparison}
+\begin{tabular}{lr}
+    \toprule
+    \textbf{Feature} & \textbf{Correlazione} \\
+    \midrule
+    formation\_energy\_per\_atom & -0.5560 \\
+    efermi & -0.4399 \\
+    density & -0.2976 \\
+    nsites & +0.2647 \\
+    volume & +0.1793 \\
+    symmetry.number & -0.1695 \\
+    total\_magnetization\_normalized\_vol & -0.1055 \\
+    energy\_above\_hull & -0.0889 \\
+    num\_magnetic\_sites & -0.0777 \\
+    total\_magnetization & -0.0569 \\
+    \bottomrule
+\end{tabular} 
+\end{table}
+\fi
+
+Successivamente il dataset viene suddiviso in un insieme di training (70\%) e uno di test (30\%) utilizzando la funzione \texttt{train\_test\_split} di \textbf{scikit-learn}:
+
+\begin{lstlisting}[language=Python]
+X_train, X_test, Y_train, Y_test = train_test_split(
+    X, Y, test_size=0.3, random_state=42
+)
+\end{lstlisting}
+
+Per rendere il codice più modulare e gestibile, i diversi modelli di regressione vengono implementati tramite delle \textbf{Pipeline}, che permettono di concatenare in modo ordinato le fasi di preprocessing e di apprendimento del modello:
+
+\begin{lstlisting}[language=Python]
+pipelines = [
+    ('Linear regression',
+     Pipeline([('scaler', StandardScaler()), ('model', LinearRegression())])),
+    ('Ridge linear regression',
+     Pipeline([('scaler', StandardScaler()), ('model', Ridge(alpha=475.0))])),
+    ('Lasso linear regression',
+     Pipeline([('scaler', StandardScaler()), ('model', Lasso(alpha=0.006))])),
+]
+\end{lstlisting}
+Viene poi gestita separatamente la pipeline per la regressione Polinomiale:
+\begin{lstlisting}[language=Python]
+last_pipe = Pipeline(
+    [
+        ('poli', PolynomialFeatures(degree=3, include_bias=False)),
+        ('scaler', StandardScaler()),
+        ('model', Ridge(alpha=110.0)),
+    ]
+)
+\end{lstlisting}
+
+Per ciascuna pipeline poi avviene:
+\begin{itemize}
+    \item \textbf{Pre-processing dei dati:} Inizialmente, viene applicata una standardizzazione delle feature mediante l'operatore \texttt{StandardScaler}. Tale procedura trasforma il vettore delle caratteristiche affinché presenti media nulla ($\mu = 0$) e varianza unitaria ($\sigma^2 = 1$). Questo passaggio risulta cruciale per uniformare l'apporto di ciascuna variabile al processo di ottimizzazione.
+    \item \textbf{Addestramento del modello:} Si procede al fit del predittore all'interno della pipeline utilizzando il set di training. Mentre per i modelli lineari, Ridge e Polinomiali è possibile determinare i coefficienti tramite una soluzione analitica in forma chiusa, per il modello Lasso è necessario ricorrere ad algoritmi iterativi (discesa del gradiente). Si rimanda alla sezione \ref{reg_path} per l'analisi dettagliata relativa alla scelta del parametro di regolarizzazione $\lambda$.
+    \item \textbf{Valutazione delle prestazioni:} Infine, vengono estratte e analizzate le metriche prestazionali per valutare i modelli:
+    \begin{itemize}
+        \item Mean Squared Error (MSE): funzione di costo comunemente utilizzata nel modello \textit{Linear Regression}. Nei modelli regolarizzati, come \textit{Ridge} e \textit{LASSO}, alla funzione costo si aggiunge rispettivamente una penalizzazione \(L_2\) o \(L_1\).
+        \item Root Mean Squared Error (RMSE): radice quadrata del \textit{Mean Squared Error}, utilizzata per esprimere l’errore medio di predizione da associare al singolo valore predetto.
+        \item $R^2$ Score: si utilizza l'$R^2$ score (coefficiente di determinazione). Calcolato tramite la funzione \texttt{r2\_score} di \texttt{sklearn.metrics}, a valore tra 0 e 1, esso rappresenta la proporzione di varianza dei dati spiegata dal modello rispetto a un modello baseline (la media), in altre parole più il valore tende ad 1 più il modello ha predizioni accurate dato per dato e non solo in media. È definito come:
+    \begin{equation}
+    R^2 = 1 - \frac{\sum_{i=1}^{n} (y_i - \hat{y}_i)^2}{\sum_{i=1}^{n} (y_i - \bar{y})^2}
+    \end{equation}
+    Dove:
+    \begin{itemize}
+    \footnotesize
+        \item $y_i$ sono i valori osservati;
+        \item $\hat{y}_i$ sono i valori predetti dal modello;
+        \item $\bar{y}$ è la media dei valori osservati;
+        \item $n$ è il numero totale di osservazioni.
+    \end{itemize}
+    \end{itemize}
+\end{itemize}
+
+\pagebreak
+\subsubsection*{Correlazione delle feature}
+\begin{figure}[htbp]
+  \centering
+  % Prima colonna: l'immagine (es. 45% della larghezza riga)
+  \begin{minipage}[c]{0.55\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{CorrelationMatrix.png}
+    \caption{Correlazione lineare tra le 10 feature del set di addestramento e il band gap del materiale.}
+    \label{fig:corr_matrix}
+  \end{minipage}
+  \hfill % Spazio flessibile tra le due colonne
+  % Seconda colonna: il testo (es. 50% della larghezza riga)
+  \begin{minipage}[c]{0.40\textwidth}
+  Per analizzare la relazione tra le feature e la variabile target, viene calcolata la matrice di correlazione di Pearson tramite \texttt{pandas.DataFrame.corr()}. In particolare in immagine~\ref{fig:corr_matrix} si riportano i coefficienti di correlazione rispetto al band gap e alle altre feature.\\
+  Si osserva come la feature maggiormente correlata con il band gap sia l’energia di formazione per atomo, che presenta una correlazione negativa significativa. Anche il livello di Fermi mostra una correlazione rilevante.
+  \end{minipage}
+\end{figure}
+
+\subsection{Regulation path} \label{reg_path}
+Per la selezione del parametro di regolarizzazione \(\lambda\) (chiamato $alpha$ dalla libreria scikit-learn) nei diversi modelli, è stata adottata una procedura progressiva. Si è inizialmente scelto un valore elevato di \(\lambda\), corrispondente a una forte regolarizzazione, e lo si è poi ridotto gradualmente. A ogni passo sono stati valutati l’errore sul set di test e il coefficiente di determinazione R$^2$, individuando il valore ottimale in corrispondenza della diminuzione massima del MSE sul dataset di test.
+
+\pagebreak
+
+\subsection{Risultati}
+
+\subsubsection*{Metriche dei modelli}
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Confronto delle prestazioni tra regressione lineare, Ridge, Lasso e regressione polinomiale di grado 3 con regolarizzazione Ridge. Per ragioni di spazio, i 285 coefficienti associati al modello polinomiale non sono mostrati.}
+\label{tab:regression_comparison}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Parametro} & \textbf{Linear} & \textbf{Ridge} & \textbf{Lasso} & \textbf{Polinomial Ridge d=3}\\
+\midrule
+MSE Train & 0.7638 & 0.7638 & 0.7849 & 0.3898\\
+MSE Test  & 0.7674 & 0.7674 & 0.7834 & 0.4232\\
+RMSE Test & 0.8760 & 0.8760 & 0.8851 & 0.6505\\
+R$^2$ Score Test & 0.4246 & 0.4246 & 0.4126 & 0.6827\\
+\midrule
+formation\_energy\_per\_atom & -0.5861 & -0.5861 & -0.5245 & \\
+energy\_above\_hull & 0.0926 & 0.0925 & 0.0073 \\
+density & -0.0437 & -0.0437 & -0.0241 \\
+volume & -0.1249 & -0.1249 & 0 \\
+nsites & 0.2178 & 0.2178 & 0.0814 \\
+symmetry.number & 0.0268 & 0.0267 & 0 \\
+efermi & -0.3467 & -0.3467 & -0.3174 \\
+total\_magnetization & 0.0265 & 0.0265 & 0 \\
+total\_magnetization\_normalized\_vol & -0.0373 & -0.0373 & 0 \\
+num\_magnetic\_sites & -0.1692 & -0.1691 & -0.0957 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+\subsubsection*{Analisi degli errori per range di gap}
+
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Confronto dell’MSE sui diversi intervalli di band gap per i modelli considerati.}
+\label{tab:mse_ranges}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Range Band Gap (eV)} & \textbf{N. Campioni} & \textbf{Linear} & \textbf{Ridge} & \textbf{Lasso} & \textbf{Polinomiale} \\
+\midrule
+$0.0$ & 4814 & 0.3207 & 0.3092 & 0.3141 & 0.1497 \\
+
+$(0.0, 1.0]$ & 555 & 0.7984 & 0.7527 & 0.7744 & 0.5391 \\
+
+$(1.0, 2.0]$ & 315 & 0.6023 & 0.5853 & 0.5988 & 0.7179 \\
+
+$(2.0, 3.0]$ & 221 & 1.5728 & 1.5783 & 1.5751 & 1.4082 \\
+
+$(3.0, 4.0]$ & 120 & 3.2205 & 3.3089 & 3.2824 & 2.1946 \\
+
+$(4.0, 5.0]$ & 78 & 6.5713 & 6.7637 & 6.7057 & 4.3066 \\
+
+$(5.0, 6.0]$ & 100 & 8.7161 & 9.0825 & 8.9387 & 2.6189 \\
+
+$(6.0, 7.0]$ & 14 & 18.6694 & 19.0892 & 18.9314 & 11.6201 \\
+
+$(7.0, 8.0]$ & 10 & 19.8020 & 20.5937 & 20.2192 & 4.8241 \\
+
+\bottomrule
+\end{tabular}
+\end{table}
+
+Dalla Tabella~\ref{tab:mse_ranges} si osserva come i modelli lineari presentino un errore contenuto per materiali a basso band gap, mentre l’MSE cresce rapidamente per valori elevati. Ciò indica una difficoltà nel descrivere il comportamento non lineare ad ampio gap. La regressione polinomiale riduce significativamente l’errore nelle regioni ad alto band gap, suggerendo una migliore capacità di modellare relazioni non lineari tra le feature e la variabile target.
+
+\iffalse
+Scrivere se la regolazione migliora la generalizzazione:
+La regolazione Ridge con con alpha=475.0 (il migliore seguendo il regulation path) presenta metriche identiche al modello senza regolazione, i coefficenti sono lasciati sostanzialmente invariati rispetto al modello lineare, quindi in questo caso la regolazione non migliora la generalizzazione
+La regolazione Lasso con alpha=6*10$^-3$ peggiora l'errore sia sul dataset di test che sul dataset di train, tagliando i coefficenti su volume, symmetry.number, total magnetization, total magnetization normalized vol
+
+La regressione polinomiale migliora in toto la previsione del modello è stato scelto un sistema di regolazione ridge, diminuisce sia l'mse che aumenta l'r$^2$, passando da un errore quadratico medio del 77\% al 42\% sul dataset di train
+\fi
+\subsubsection*{Analisi della Regolarizzazione e Generalizzazione}
+
+L'impatto delle tecniche di regolarizzazione sulla capacità di generalizzazione del modello è stato analizzato confrontando i risultati di Ridge, Lasso e della regressione polinomiale:
+
+\begin{itemize}
+    \item \textbf{Regolarizzazione Ridge:} Applicando un parametro di penalizzazione $\alpha = 475.0$ (identificato come ottimale lungo il \textit{regularization path}), non si osservano miglioramenti significativi nella capacità di generalizzazione. Le metriche prestazionali risultano identiche a quelle del modello lineare non regolarizzato; si osserva inoltre che i coefficienti non sono stati modificati dalla regolarizzazione, indicando che, durante la selezione del parametro, il modello migliore è risultato essere quello non regolarizzato.
+    
+    \item \textbf{Regolarizzazione Lasso:} L'impiego di Lasso con $\alpha = 6 \cdot 10^{-3}$ produce un peggioramento dell'errore sia sul set di \textit{training} che su quello di \textit{test}. Tale decremento prestazionale è riconducibile all'eccessiva semplificazione del modello (\textit{feature selection} intrinseca), che ha azzerato i coefficienti relativi a variabili quali \texttt{volume}, \texttt{symmetry.number}, \texttt{total\_magnetization} e \texttt{total\_magnetization normalized\_vol}, inducendo un fenomeno di \textit{underfitting}. In questo caso non è stato scelto il coefficiente $\alpha$ ottimale che avrebbe, come nel caso precedente, lasciato il modello invariato. La scelta è stata invece effettuata per mostrare come agisce la regolarizzazione LASSO, azzerando un numero $n$ di coefficienti.
+    
+    \item \textbf{Regressione Polinomiale (grado 3) e Ridge:} L'introduzione di termini polinomiali, combinata con una regolarizzazione Ridge, ha prodotto il miglioramento più significativo. L'approccio ha permesso di catturare relazioni non lineari nei dati, portando lo scarto quadratico medio ($RMSE$) dal $88\%$ al $65\%$ sul dataset di test e incrementando di $0.2581$ il coefficiente di determinazione $R^2$. 
+\end{itemize}
+
+\section{Metodo PCA per la banca dati MNIST}
+\subsection{Design del codice}
+
+Utilizzando le funzionalità della libreria scikit-learn, il dataset viene acquisito e successivamente ripartito nei sottoinsiemi di addestramento (train set) e di verifica (test set)
+\begin{lstlisting}[language=Python]
+X, y = fetch_openml('mnist_784', version=1, return_X_y=True)
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=10000, train_size=50000, random_state=42
+)
+\end{lstlisting}
+
+Viene creata una pipeline per la Regressione logistica:
+\begin{lstlisting}[language=Python]
+mnist_pipeline = Pipeline(
+    [
+        ('scaler', StandardScaler()),
+        ('model', LogisticRegression(solver='sag', max_iter=100000, tol=0.001, random_state=42)),
+    ]
+)
+
+mnist_pipeline.fit(X_train, y_train)
+\end{lstlisting}
+
+Viene utilizzata la funzione \texttt{accuracy\_score} per la validazione delle predizioni e di due funzioni implementati manualmente per misurare il grado di sparsità dei coefficienti appresi:
+\begin{lstlisting}[language=Python]
+def sparsity(weights):
+    return np.mean(weights == 0)
+
+def sparsity_tol(weights, tol=1e-4):
+    return np.mean(np.isclose(weights, 0, atol=tol))
+\end{lstlisting}
+
+\subsection{Risultati}
+
+\begin{table}[h]
+\centering
+\footnotesize
+\caption{Valutazione delle prestazioni del modello: confronto tra la sparsità assoluta, la sparsità calcolata con tolleranza ($10^{-4}$) e l'accuratezza complessiva sul test set.}
+\label{tab:risultati_2}
+\begin{tabular}{lc}
+\toprule
+\textbf{Sparsità} & 0.09566 \\
+\textbf{Sparsità con tolleranza} & 0.09694 \\
+\textbf{Accuratezza} & 0.9192 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Come si evince dalla Tabella \ref{tab:risultati_2}, il modello presenta una sparsità (intesa, come da definizione, quale percentuale di pesi non nulli) pari a circa lo 0.095. Questo indica che oltre il 90\% dei coefficienti appresi è pari a zero. Ciò significa che la maggioranza dei pixel non contribuisce alla discriminazione del numero rappresentato; si tratta prevalentemente dei pixel situati ai bordi dell'immagine che costituiscono lo sfondo nero costante. Nella visualizzazione successiva, questi pesi nulli corrispondono alle aree neutre (colorate in giallo). Sul fronte delle prestazioni predittive, il modello dimostra una buona efficacia, raggiungendo un'accuratezza del 91.92\% sui dati di test.
+
+\begin{figure}[htbp]
+    \centering
+    \adjincludegraphics[width=0.98\textwidth]{MINST-weights.pdf}
+    \caption{Mappe di calore dei pesi appresi dal modello di regressione logistica per ciascuna delle 10 classi (cifre 0-9) del dataset MNIST. Le intensità dei pixel rappresentano l'importanza di ciascuna area per la classificazione della relativa cifra.}
+    \label{fig:weights_visualization}
+\end{figure}
+
+L'analisi visiva dei pesi riportata in Figura \ref{fig:weights_visualization} permette di interpretare le caratteristiche spaziali apprese dall'algoritmo per distinguere le diverse cifre. Si osserva, ad esempio, che per la classe corrispondente allo ``0'', l'area centrale presenta coefficienti negativi di elevata magnitudo. Questo comportamento è coerente con la morfologia della cifra, tipicamente caratterizzata da uno spazio vuoto al centro: l'attivazione di pixel in quell'area penalizza fortemente la probabilità che l'immagine rappresenti un ``0''. Si precisa infine che, al fine di permettere una corretta visualizzazione grafica, i valori mostrati nell'immagine sono stati normalizzati tra -1 e 1 scalandoli rispetto al coefficiente massimo assoluto, sebbene i pesi effettivi del modello varino su range differenti.
+
+\subsubsection*{Analisi delle Componenti Principali (PCA)}
+
+\begin{table}[h]
+\footnotesize
+\centering
+\caption{Analisi della varianza spiegata in base al numero di componenti}
+\label{tab:varianza_componenti}
+\begin{tabular}{cc}
+\hline
+\textbf{N. Componenti} & \textbf{Varianza} \\ \hline
+5   & 0.3339 \\
+7   & 0.4095 \\
+10  & 0.4893 \\
+14  & 0.5649 \\
+20  & 0.6449 \\
+29  & 0.7249 \\
+42  & 0.7962 \\
+61  & 0.8558 \\
+87  & 0.9006 \\
+125 & 0.9348 \\
+179 & 0.9601 \\
+256 & 0.9793 \\
+366 & 0.9934 \\
+524 & 0.9996 \\
+750 & 1.0000 \\ \hline
+\end{tabular}
+\end{table}
+
+
+
+L'applicazione della PCA ha permesso di ridurre la dimensionalità del dataset da 784 caratteristiche originali a un numero inferiore di componenti principali, mantenendo comunque la struttura essenziale delle cifre. La Tabella \ref{tab:pca_reconstruction} illustra visivamente come la qualità della ricostruzione migliori all'aumentare della varianza spiegata accumulata dalle prime $k$ componenti.
+
+\begin{table}[htbp]
+\centering
+\caption{Confronto tra immagini originali e ricostruzioni tramite PCA al variare del numero di componenti ($k$). Per ogni riga è indicata la varianza spiegata cumulata.}
+\label{tab:pca_reconstruction}
+\setlength{\tabcolsep}{2pt} % Riduce lo spazio tra le colonne per far stare tutto in orizzontale
+\begin{tabular}{ccccccc}
+\toprule
+\textbf{Digit} & \textbf{Originale} & \textbf{$k=5$} & \textbf{$k=10$} & \textbf{$k=29$} & \textbf{$k=125$} & \textbf{$k=256$} \\
+\midrule
+\textbf{3} & 
+\includegraphics[width=0.12\textwidth]{3-original.pdf} & 
+\includegraphics[width=0.12\textwidth]{3-k5.pdf} & 
+\includegraphics[width=0.12\textwidth]{3-k10.pdf} & 
+\includegraphics[width=0.12\textwidth]{3-k29.pdf} & 
+\includegraphics[width=0.12\textwidth]{3-k125.pdf} & 
+\includegraphics[width=0.12\textwidth]{3-k256.pdf} \\
+\textit{Varianza} & 100\% & 33.4\% & 48.9\% & 72.5\% & 93.5\% & 97.9\% \\
+\addlinespace[10pt]
+
+
+\textbf{6} &  
+\includegraphics[width=0.12\textwidth]{6-original.pdf} & 
+\includegraphics[width=0.12\textwidth]{6-k5.pdf} & 
+\includegraphics[width=0.12\textwidth]{6-k10.pdf} & 
+\includegraphics[width=0.12\textwidth]{6-k29.pdf} & 
+\includegraphics[width=0.12\textwidth]{6-k125.pdf} & 
+\includegraphics[width=0.12\textwidth]{6-k256.pdf} \\
+\textit{Varianza} & 100\% & 33.4\% & 48.9\% & 72.5\% & 93.5\% & 97.9\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Dalla tabella si osserva che già con $k=125$ (meno del 15\% delle dimensioni originali), l'immagine è chiaramente riconoscibile, a conferma del fatto che gran parte dell'informazione è contenuta nelle prime componenti principali.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.98\textwidth]{scatter.png}
+    \caption{Proiezione bidimensionale del dataset MNIST tramite PCA. Ogni punto rappresenta un'immagine del dataset, colorata in base alla classe di appartenenza (0-9). La visualizzazione evidenzia come le prime due componenti principali riescano a catturare differenze morfologiche macroscopiche tra alcune classi.}
+    \label{fig:pca_colored_scatter}
+\end{figure}
+L'analisi della Figura \ref{fig:pca_colored_scatter} rivela informazioni fondamentali sulla struttura del dataset. Si nota come la classe corrispondente alla cifra “1'' (in blu) formi un cluster relativamente distinto sul lato sinistro del grafico, suggerendo che la sua forma lineare sia facilmente distinguibile dalle altre componenti. Al contrario, la regione centrale del grafico presenta una marcata sovrapposizione tra diverse classi, come il “2" (rosa), il “6" (viola) e l' “8" (marrone); tale fenomeno è dovuto alla somiglianza strutturale di queste cifre, che condividono molti pixel attivi nelle stesse posizioni spaziali. 
+
+\noindent In sintesi, la PCA in due dimensioni permetta di individuare dei macro-agglomerati, essa non è sufficiente per una separazione lineare delle 10 classi. Questo giustifica l'utilizzo di un numero più elevato di componenti principali per l'addestramento dei modelli di classificazione, al fine di preservare una quota di varianza utile a distinguere le cifre morfologicamente simili.
+
+\subsubsection*{Performance}
+Il processo di training, inizialmente attestato su 5:22 minuti per lo spazio delle feature originale a 784 dimensioni, è stato ridotto a circa 10 secondi previo filtraggio dei dati tramite PCA (d=100). Il modello ha garantito un'accuratezza del 91.66\% (con uno scarto del 2.6 \textperthousand rispetto al modello originale).
+
+
+
+\iffalse
+\section{Auto-facce e algoritmo PCA}
+\subsection{Design del codice}
+\begin{lstlisting}[language=Python]
+blabla
+\end{lstlisting}
+\subsection{Risultati}
+\begin{table}[htbp]
+\centering
+\caption{Visualizzazione delle prime 15 autoface (Eigenfaces) estratte tramite PCA, normalizzate nel range [0, 255]. Le componenti sono ordinate per varianza spiegata decrescente; si noti come le prime catturino l'illuminazione e la forma globale, mentre le successive isolino dettagli somatici specifici.}
+\label{tab:eigenfaces_gallery}
+
+% Impostazioni per gestire lo spazio e l'allineamento
+\setlength{\tabcolsep}{4pt} 
+\renewcommand{\arraystretch}{1.5}
+
+\begin{tabular}{ccccc}
+\toprule
+\textbf{EF 0} & \textbf{EF 1} & \textbf{EF 2} & \textbf{EF 3} & \textbf{EF 4} \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{0.png} & 
+\includegraphics[width=0.18\textwidth]{1.png} & 
+\includegraphics[width=0.18\textwidth]{2.png} & 
+\includegraphics[width=0.18\textwidth]{3.png} & 
+\includegraphics[width=0.18\textwidth]{4.png} \\
+
+
+
+\addlinespace[15pt]
+\toprule
+
+\textbf{EF 5} & \textbf{EF 6} & \textbf{EF 7} & \textbf{EF 8} & \textbf{EF 9} \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{5.png} & 
+\includegraphics[width=0.18\textwidth]{6.png} & 
+\includegraphics[width=0.18\textwidth]{7.png} & 
+\includegraphics[width=0.18\textwidth]{8.png} & 
+\includegraphics[width=0.18\textwidth]{9.png} \\
+
+\addlinespace[15pt]
+\toprule
+
+\textbf{EF 10} & \textbf{EF 11} & \textbf{EF 12} & \textbf{EF 13} & \textbf{EF 14} \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{10.png} & 
+\includegraphics[width=0.18\textwidth]{11.png} & 
+\includegraphics[width=0.18\textwidth]{12.png} & 
+\includegraphics[width=0.18\textwidth]{13.png} & 
+\includegraphics[width=0.18\textwidth]{14.png} \\
+
+\end{tabular}
+
+\end{table}
+
+Come negli altri casi le autofacce rappresentano le direzioni di maggiore varianza all'interno del dataset, cioè i tratti che più sono modificati (e che quindi si presume contengono più informazioni) tra le immagini.
+Le prime autofacce, in particolare le prime 5, contengono l'informazione di come è distribuita la luce nell'immagine (EF 0: luce da sinistra, EF 1: luce da destra, EF 2: luce da sopra...)
+
+Utilizzando una foto esterna la composizione con k autofacce è poco soddisfacente, iniziano a vedersi i tratti della faccia originale solo intorno alle k=1000, e si riconosce la foto per k=2000..., utilizzando invece una faccia del data set t
+
+\begin{table}[htbp]
+\centering
+\caption{bla bla bla bla bla.}
+\label{tab:eigenfaces_gallery}
+
+% Impostazioni per gestire lo spazio e l'allineamento
+\setlength{\tabcolsep}{4pt} 
+\renewcommand{\arraystretch}{1.5}
+
+\begin{tabular}{ccccc}
+\toprule
+\textbf{EF 0} & \textbf{EF 1} & \textbf{EF 2} & \textbf{EF 3} & \textbf{EF 4} \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=5.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=45.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=166.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=348.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=490.png} \\
+
+
+
+\addlinespace[15pt]
+\toprule
+
+\textbf{EF 5} & \textbf{EF 6} & \textbf{EF 7} & \textbf{EF 8} & \textbf{EF 9} \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=631.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=1055.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=2410.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/original.png} & 
+\end{tabular}
+
+
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{bla bla bla bla bla.}
+\label{tab:eigenfaces_gallery}
+
+% Impostazioni per gestire lo spazio e l'allineamento
+\setlength{\tabcolsep}{4pt} 
+\renewcommand{\arraystretch}{1.5}
+
+\begin{tabular}{ccccc}
+\toprule
+\textbf{EF 0} & \textbf{EF 1} & \textbf{EF 2} & \textbf{EF 3} & \textbf{EF 4} \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=5.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=45.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=166.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=348.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=490.png} \\
+
+
+
+\addlinespace[15pt]
+\toprule
+
+\textbf{EF 5} & \textbf{EF 6} & \textbf{EF 7} & \textbf{EF 8} & \textbf{EF 9} \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=631.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=1055.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=2410.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/original.png} & 
+\end{tabular}
+
+
+\end{table}
+
+
+bla bla riguardo il confronto con le mie facce generate
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.98\textwidth]{Grafico.pdf}
+    \caption{blablabla.}
+    \label{fig:pca_colored_scatter}
+\end{figure}
+\fi
+\section{Auto-facce e algoritmo PCA}
+\subsection{Design del codice}
+
+Il primo passo per l'estrazione delle \textit{eigenfaces} (auto-facce) consiste nel caricamento e nel pre-processing del dataset. Le immagini vettorializzate vengono standardizzate affinché abbiano media nulla e varianza unitaria tramite \texttt{StandardScaler}:
+
+\begin{lstlisting}[language=Python]
+st_instance = StandardScaler()
+faces_scaled = st_instance.fit_transform(faces)
+X_train = faces_scaled
+\end{lstlisting}
+
+\noindent Successivamente, viene istanziato e addestrato il modello PCA sull'intero training set per calcolare le componenti principali, le quali rappresentano le direzioni di massima varianza nello spazio delle immagini:
+
+\begin{lstlisting}[language=Python]
+pca = PCA(random_state=42)
+pca.fit(X_train)
+\end{lstlisting}
+
+\noindent Per testare la capacità di generalizzazione e di ricostruzione del modello, sono state caricate e pre-processate due immagini esterne (una foto personale e l'immagine di una tigre). Queste immagini vengono prima proiettate nello spazio latente ridotto e poi ricostruite utilizzando un numero progressivamente crescente di componenti $k$:
+
+\begin{lstlisting}[language=Python]
+for k in range(5, len(img_pca)):
+    img_pca_filtered = img_pca.copy()
+    
+    # Azzera tutte le componenti successive a k
+    img_pca_filtered[k:] = 0 
+    
+    img_restored = pca.inverse_transform(img_pca_filtered)
+    img_restored_original_scale = st_instance.inverse_transform(img_restored)
+\end{lstlisting}
+
+\noindent Durante questo processo iterativo, viene calcolato l'Errore Quadratico Medio (MSE) tra l'immagine originale e quella ricostruita, per quantificare numericamente la qualità della ricostruzione al variare di $k$.
+
+\newpage
+\subsection{Risultati}
+
+\begin{table}[htbp]
+\centering
+\caption{Visualizzazione delle prime 15 autoface (Eigenfaces) estratte tramite PCA.}
+\label{tab:eigenfaces_gallery}
+
+% Impostazioni per gestire lo spazio e l'allineamento
+\setlength{\tabcolsep}{4pt} 
+\renewcommand{\arraystretch}{1.5}
+
+\begin{tabular}{ccccc}
+\toprule
+\textbf{EF 0} & \textbf{EF 1} & \textbf{EF 2} & \textbf{EF 3} & \textbf{EF 4} \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{0.png} & 
+\includegraphics[width=0.18\textwidth]{1.png} & 
+\includegraphics[width=0.18\textwidth]{2.png} & 
+\includegraphics[width=0.18\textwidth]{3.png} & 
+\includegraphics[width=0.18\textwidth]{4.png} \\
+
+\addlinespace[15pt]
+\toprule
+
+\textbf{EF 5} & \textbf{EF 6} & \textbf{EF 7} & \textbf{EF 8} & \textbf{EF 9} \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{5.png} & 
+\includegraphics[width=0.18\textwidth]{6.png} & 
+\includegraphics[width=0.18\textwidth]{7.png} & 
+\includegraphics[width=0.18\textwidth]{8.png} & 
+\includegraphics[width=0.18\textwidth]{9.png} \\
+
+\addlinespace[15pt]
+\toprule
+
+\textbf{EF 10} & \textbf{EF 11} & \textbf{EF 12} & \textbf{EF 13} & \textbf{EF 14} \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{10.png} & 
+\includegraphics[width=0.18\textwidth]{11.png} & 
+\includegraphics[width=0.18\textwidth]{12.png} & 
+\includegraphics[width=0.18\textwidth]{13.png} & 
+\includegraphics[width=0.18\textwidth]{14.png} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Come negli altri casi, le autofacce rappresentano le direzioni di maggiore varianza all'interno del dataset, cioè i tratti che più subiscono variazioni (e che quindi racchiudono maggiore informazione) tra le varie immagini. Si nota che le prime autofacce, in particolare le prime 5, contengono l'informazioni sulla distribuzione della luce nell'immagine (ad es. EF 0: luce da destra, EF 1: luce da sinistra, EF: 2 luce da sopra).
+
+
+\begin{table}[htbp]
+\centering
+\caption{Ricostruzione di un'immagine fuori distribuzione (\textit{Out-of-Distribution}): Diego.}
+\label{tab:myface_reconstruction}
+
+\setlength{\tabcolsep}{4pt} 
+\renewcommand{\arraystretch}{1.5}
+
+\begin{tabular}{ccccc}
+\toprule
+\textbf{Originale} & \textbf{$k=5$} & \textbf{$k=45$} & \textbf{$k=166$} & \textbf{$k=348$} \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{lemieautofacce/original.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=5.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=45.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=166.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=348.png} \\
+
+\addlinespace[15pt]
+\toprule
+
+\textbf{$k=490$} & \textbf{$k=631$} & \textbf{$k=1055$} & \textbf{$k=2410$} & \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=490.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=631.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=1055.png} & 
+\includegraphics[width=0.18\textwidth]{lemieautofacce/1774978440.8789415k=2410.png} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Utilizzando una foto esterna (Tabella \ref{tab:myface_reconstruction}), la composizione con poche autofacce è abbastanza soddisfacente: i tratti della faccia originale iniziano a delinearsi intorno a $k=490$ e diventano ben riconoscibili superate le 1000 componenti.
+
+
+\begin{table}[htbp]
+\centering
+\caption{Ricostruzione di un'immagine fuori distribuzione (\textit{Out-of-Distribution}): una tigre. I vettori di base, essendo stati appresi su volti umani, faticano a ricostruire pattern completamente differenti, originando evidenti artefatti.}
+\label{tab:tiger_reconstruction}
+
+\setlength{\tabcolsep}{4pt} 
+\renewcommand{\arraystretch}{1.5}
+
+\begin{tabular}{ccccc}
+\toprule
+\textbf{Originale} & \textbf{$k=5$} & \textbf{$k=45$} & \textbf{$k=166$} & \textbf{$k=348$} \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{tigre/original.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=5.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=45.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=166.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=348.png} \\
+
+\addlinespace[15pt]
+\toprule
+
+\textbf{$k=490$} & \textbf{$k=631$} & \textbf{$k=1055$} & \textbf{$k=2410$} & \\
+\midrule
+
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=490.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=631.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=1055.png} & 
+\includegraphics[width=0.18\textwidth]{tigre/1774987215.6746397k=2410.png} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Il limite della proiezione su base PCA diventa palese introducendo l'immagine di una tigre (Tabella \ref{tab:tiger_reconstruction}). Le \textit{eigenfaces} costituiscono uno spazio latente ottimizzato esclusivamente per i volti umani; di conseguenza, la ricostruzione di un soggetto che non condivide alcuna caratteristica strutturale (occhi, naso, bocca nelle tipiche posizioni umane) è impossibile (le 2410 informazioni selezionate per la descrizione di un volto non sono ovviamente sufficenti per la descrizione di una qualsiasi soggetto in uno spazio 32256-dimensionale).
+\newpage
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.98\textwidth]{Grafico.pdf}
+    \caption{Andamento dell'Errore Quadratico Medio (MSE) in funzione del numero di componenti utilizzate ($k$). In rosso l'andamento dell'immagine del sottoscritto, che raggiunge un valore minimo di $er_F=0.01292$; in blu l'andamento dell'immagine della tigre $er_T=0.2188$}
+    \label{fig:mse_comparison}
+\end{figure}
+
+\noindent Infine, l’analisi dell’Errore Quadratico Medio (Figura \ref{fig:mse_comparison}) conferma quantitativamente le osservazioni empiriche: l’errore relativo all’immagine della tigre si riduce molto più lentamente e si stabilizza su un valore di \textit{differenza dall’immagine originale} circa 15 volte superiore rispetto a quello dell’immagine del volto. Al contrario, quest’ultima mostra una decrescita molto più marcata già nelle prime 250 autofacce.
+
+\end{document}

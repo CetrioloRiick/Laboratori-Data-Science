@@ -3,8 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-def polynomial_model(coeffs, x):
-    x = np.asarray(x)
+def polynomial_model(coeffs: np.ndarray, x: np.ndarray):
     powers = x[:, None] ** np.arange(len(coeffs))
     return powers @ coeffs
 
@@ -15,15 +14,15 @@ def cost_function(coeffs: np.ndarray, x: np.ndarray, y: np.ndarray) -> float:
     return np.mean(errors**2) / 2
 
 
+
 def gradient_cost_function(
     coeffs: np.ndarray, x: np.ndarray, y: np.ndarray
 ) -> np.ndarray:
     predictions = polynomial_model(coeffs, x)
     errors = predictions - y
-    N = len(x)
-    deg = len(coeffs)
-
-    gradient = np.array([np.sum(errors * x**i) for i in range(deg)]) / N
+    
+    x = x[:, None] ** np.arange(len(coeffs))
+    gradient = errors @ x / len(x) 
     return gradient
 
 
@@ -37,11 +36,11 @@ y = np.sin(2 * np.pi * x) + noise
 x_true = np.linspace(0, 1, 500)
 y_true = np.sin(2 * np.pi * x_true)
 
-degree = 16
+degree = 20
 
 coeffs = np.random.uniform(-0.5, 0.5, degree)
 
-for _ in range(3):
+for _ in range(6):
     y_plot = polynomial_model(coeffs, x_true)
     print(coeffs)
     plt.figure(figsize=(8, 5))
@@ -61,7 +60,7 @@ for _ in range(3):
             grad = gradient_cost_function(coeffs, x, y)
             cost = cost_function(coeffs, x, y)
             t.set_postfix({"Costo": f"{cost:.6e}"})
-            coeffs -= 0.1 * grad
+            coeffs -= 0.01 * grad
 
 
 plt.figure(figsize=(8, 5))
