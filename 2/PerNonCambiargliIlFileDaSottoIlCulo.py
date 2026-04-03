@@ -29,7 +29,7 @@ def gradient_cost_function(
 
 noise_amp = 0.2
 n_samples = 200
-n_iter = 10000
+n_iter = 1000
 eta = 0.5
 idRun = str(time.time())
 
@@ -41,7 +41,7 @@ y = np.sin(2 * np.pi * x) + noise
 x_true = np.linspace(0, 1, 500)
 y_true = np.sin(2 * np.pi * x_true)
 
-degree = 300
+degree = 7
 
 coeffs = np.random.uniform(-0.5, 0.5, degree)
 
@@ -73,42 +73,37 @@ plt.grid(True, linestyle="--", alpha=0.7)
 plt.show()
  """
 
-for element in range(100):
+spots = [250, 250, 500, 3000, 6000, 10000, 30000]
+pippo = ["0", "0", "250", "500", "1k", "4k", "10k", "20k", "50k"]
+colors = ["red", "green", "purple", "yellow", "brown", "black", "pink"]
+plt.figure(figsize=(12, 8))
+plt.scatter(x, y, s=25, alpha=0.6, label="Punti con rumore")
+
+conto = 0
+for element, c in zip(spots, colors):
+    conto += 1
     y_plot = polynomial_model(coeffs, x_true)
-    plt.figure(figsize=(12, 8))
-    plt.scatter(x, y, s=25, alpha=0.6, label="Punti con rumore")
-    plt.plot(x_true, y_true, color="black", lw=2, label="sin(2πx)")
-    plt.plot(x_true, y_plot, color="red", lw=2, label="model")
+    plt.plot(x_true, y_plot, color=c, lw=2, label="Step " + pippo[conto])
 
     plt.xlabel("x")
     plt.ylabel("y")
     plt.legend()
     plt.grid(True, linestyle="--", alpha=0.4)
-    plt.savefig(idRun + "-" + str(element * n_iter) + ".svg")
-    plt.show(block=False)
-    plt.close("all")
-    with tqdm(range(n_iter), desc="Ottimizzazione", unit="iter") as t:
+    with tqdm(range(element), desc="Ottimizzazione", unit="iter") as t:
         for i in t:
             grad = gradient_cost_function(coeffs, x, y)
             cost = cost_function(coeffs, x, y)
             # costs.append(cost)
             t.set_postfix({"Costo": f"{cost:.6e}"})
             coeffs -= eta * grad
-    print("costo" + str(cost))
-    joblib.dump(cost, "lastFunzioneCosto300g")
-    joblib.dump(coeffs, idRun + ".coeffs300g")
-
+conto += 1
 y_plot = polynomial_model(coeffs, x_true)
-plt.figure(figsize=(12, 8))
-plt.scatter(x, y, s=25, alpha=0.6, label="Punti con rumore")
-plt.plot(x_true, y_true, color="black", lw=2, label="sin(2πx)")
-plt.plot(x_true, y_plot, color="red", lw=2, label="model")
+plt.plot(x_true, y_plot, color="gray", lw=2, label=conto)
 
 plt.xlabel("x")
 plt.ylabel("y")
 plt.legend()
 plt.grid(True, linestyle="--", alpha=0.4)
-plt.savefig(idRun + "-" + str(element * n_iter) + ".svg")
 plt.show()
 
 
