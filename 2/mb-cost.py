@@ -75,7 +75,7 @@ plt.show()
 
 def get_batches(x, y, batch_size):
     indices = np.arange(len(x))
-    np.random.shuffle(indices) 
+    np.random.shuffle(indices)
 
     for i in range(0, len(x), batch_size):
         batch_idx = indices[i : i + batch_size]
@@ -83,40 +83,34 @@ def get_batches(x, y, batch_size):
 
 
 # Esempio di utilizzo nel tuo loop:
-n_epchos = []
-times = []
-conv_cost = 6.7e-3
-coeffs_init = np.random.uniform(-0.5, 0.5, degree)
+n_epchos = 4000
+batch_size = 1
+coeffs = np.random.uniform(-0.5, 0.5, degree)
 
-for batch_size in range(1, 101):
-    epoch = 0
-    start_time = time.perf_counter()
-    coeffs = coeffs_init.copy()
-    cost = cost_function(coeffs, x, y)
+cost = cost_function(coeffs, x, y)
 
-    while cost > conv_cost:
-        epoch += 1
+cost_per_epoch = []
+cost_per_iteration = []
 
-        for x_batch, y_batch in get_batches(x, y, batch_size):
-            grad = gradient_cost_function(coeffs, x_batch, y_batch)
-            coeffs -= eta * grad
+for i in range(n_epchos):
 
+    for x_batch, y_batch in get_batches(x, y, batch_size):
+        grad = gradient_cost_function(coeffs, x_batch, y_batch)
+        coeffs -= eta * grad
         cost = cost_function(coeffs, x, y)
+        cost_per_iteration.append(cost)
+    cost_per_epoch.append(cost)
 
-    joblib.dump(coeffs, idRun + ".minibatch.batchsize=" + str(batch_size))
-    n_epchos.append(epoch)
-    end_time = time.perf_counter()
 
-    times.append(end_time - start_time)
+    
+plt.plot(range(n_epchos), cost_per_epoch, lw=0.5)
+plt.grid(True, linestyle="--", alpha=0.4)
 
-joblib.dump(times, idRun + ".minibatch.times")
-joblib.dump(n_epchos, idRun + ".minibatch.epochs")
-
-plt.bar(range(1, 101), times)
 plt.show()
-plt.bar(range(1, 101), n_epchos)
-plt.show()
+plt.plot(range(len(cost_per_iteration)), cost_per_iteration)
+plt.grid(True, linestyle="--", alpha=0.4)
 
+plt.show()
 
 """ y_plot = polynomial_model(coeffs, x_true)
 plt.figure(figsize=(8, 5))
