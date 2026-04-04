@@ -43,7 +43,6 @@ y_true = np.sin(2 * np.pi * x_true)
 
 degree = 9
 
-coeffs = np.random.uniform(-0.5, 0.5, degree)
 
 """
 costs = []
@@ -73,37 +72,49 @@ plt.grid(True, linestyle="--", alpha=0.7)
 plt.show()
  """
 
-spots = [250, 250, 500, 3000, 6000, 10000, 30000]
-pippo = ["0", "0", "250", "500", "1k", "4k", "10k", "20k", "50k"]
-colors = ["red", "green", "purple", "yellow", "brown", "black", "pink"]
-plt.figure(figsize=(12, 8))
-plt.scatter(x, y, s=25, alpha=0.6, label="Punti con rumore")
 
-conto = 0
-for element, c in zip(spots, colors):
-    conto += 1
-    y_plot = polynomial_model(coeffs, x_true)
-    plt.plot(x_true, y_plot, color=c, lw=2, label="Step " + pippo[conto])
+def get_batches(x, y, batch_size):
+    indices = np.arange(len(x))
+    np.random.shuffle(indices) 
 
-    plt.xlabel("x")
-    plt.ylabel("y")
-    plt.legend()
-    plt.grid(True, linestyle="--", alpha=0.4)
-    with tqdm(range(element), desc="Ottimizzazione", unit="iter") as t:
-        for i in t:
-            grad = gradient_cost_function(coeffs, x, y)
-            cost = cost_function(coeffs, x, y)
-            # costs.append(cost)
-            t.set_postfix({"Costo": f"{cost:.6e}"})
+    for i in range(0, len(x), batch_size):
+        batch_idx = indices[i : i + batch_size]
+        yield x[batch_idx], y[batch_idx]
+
+
+# Esempio di utilizzo nel tuo loop:
+n_epchos = []
+times = []
+conv_cost = 6.7e-3
+coeffs_init = np.random.uniform(-0.5, 0.5, degree)
+
+for batch_size in range(1, 101):
+    epoch = 0
+    start_time = time.perf_counter()
+    coeffs = coeffs_init.copy()
+    cost = cost_function(coeffs, x, y)
+
+    while cost > conv_cost:
+        epoch += 1
+
+        for x_batch, y_batch in get_batches(x, y, batch_size):
+            grad = gradient_cost_function(coeffs, x_batch, y_batch)
             coeffs -= eta * grad
-conto += 1
-y_plot = polynomial_model(coeffs, x_true)
-plt.plot(x_true, y_plot, color="gray", lw=2, label=conto)
 
-plt.xlabel("x")
-plt.ylabel("y")
-plt.legend()
-plt.grid(True, linestyle="--", alpha=0.4)
+        cost = cost_function(coeffs, x, y)
+
+    joblib.dump(coeffs, idRun + ".minibatch.batchsize=" + str(batch_size))
+    n_epchos.append(epoch)
+    end_time = time.perf_counter()
+
+    times.append(end_time - start_time)
+
+joblib.dump(times, idRun + ".minibatch.times")
+joblib.dump(n_epchos, idRun + ".minibatch.epochs")
+
+plt.bar(range(1, 101), times)
+plt.show()
+plt.bar(range(1, 101), n_epchos)
 plt.show()
 
 
